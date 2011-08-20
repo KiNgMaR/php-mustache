@@ -15,11 +15,19 @@ class MustacheInterpreter
 {
 	protected $tree;
 
+	/**
+	 * @param MustacheParser $parser Parser with the syntax tree.
+	 **/
 	public function __construct(MustacheParser $parser)
 	{
 		$this->tree = $parser->getTree();
 	}
 
+	/**
+	 * Runs the previously assigned template tree against the view data in $view.
+	 * @param object|array $view
+	 * @return string Output, or false if $view is invalid.
+	 **/
 	public function run($view)
 	{
 		if(!is_array($view) && !is_object($view))
@@ -34,6 +42,12 @@ class MustacheInterpreter
 		return $result;
 	}
 
+	/**
+	 * Runs a parser object against a stack. Not more than a switch based on the type of $obj.
+	 * @param MustacheRuntimeStack $mustache_stack
+	 * @param MustacheParserObject $obj
+	 * @return string Output.
+	 **/
 	protected function runInternal(MustacheRuntimeStack $mustache_stack, MustacheParserObject $obj)
 	{
 		if($obj instanceof MustacheParserSection)
@@ -50,9 +64,20 @@ class MustacheInterpreter
 		}
 	}
 
+	/**
+	 * Runs a section, which could be the internal root section, an inverted section or a regular section.
+	 * @param MustacheRuntimeStack $mustache_stack
+	 * @param MustacheParserSection $section
+	 * @return string Output.
+	 **/
 	protected function runSection(MustacheRuntimeStack $mustache_stack, MustacheParserSection $section)
 	{
 		$result = '';
+
+		// outline:
+		// if it's a root, or a falsey inverted section, do_run = true will cause a simple pass,
+		// otherwise if the section is not falsey or iterable, all values from the section variable
+		// will be put onto the stack and executed with one pass each.
 
 		$is_root = ($section->getName() === '#ROOT#');
 
@@ -72,21 +97,18 @@ class MustacheInterpreter
 					$do_run = true;
 				}
 			}
-			else
+			elseif(MustacheRuntime::sectionIterable($secv))
 			{
-				if(MustacheRuntime::sectionIterable($secv))
+				foreach($secv as $v)
 				{
-					foreach($secv as $v)
+					$mustache_stack->push($v);
+
+					foreach($section as $child)
 					{
-						$mustache_stack->push($v);
-
-						foreach($section as $child)
-						{
-							$result .= $this->runInternal($mustache_stack, $child);
-						}
-
-						$mustache_stack->pop();
+						$result .= $this->runInternal($mustache_stack, $child);
 					}
+
+					$mustache_stack->pop();
 				}
 				// don't use $do_run here, it's either done already or falsey-
 			}
@@ -105,6 +127,12 @@ class MustacheInterpreter
 		return $result;
 	}
 
+	/**
+	 * "Runs" a template variable from the stack, returns their contents ready for output.
+	 * @param MustacheRuntimeStack $mustache_stack
+	 * @param MustacheParserVariable $var
+	 * @return string Output.
+	 **/
 	protected function runVar(MustacheRuntimeStack $mustache_stack, MustacheParserVariable $var)
 	{
 		$v = MustacheRuntime::lookUpVar($mustache_stack, $var->isDotNotation() ? $var->getNames() : $var->getName());
