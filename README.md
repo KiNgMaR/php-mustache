@@ -17,3 +17,4 @@ left to implement, such as:
 - better whitespace treatment
 - recursive partials
 - lambdas
+- example code
