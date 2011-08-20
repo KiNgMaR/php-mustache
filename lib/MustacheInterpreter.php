@@ -1,13 +1,15 @@
 <?php
 /**
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage interpreter
  * @author Ingmar Runge 2011 - https://github.com/KiNgMaR - BSD license
  **/
 
 
 /**
  *
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage interpreter
  **/
 class MustacheInterpreter
 {

@@ -1,13 +1,15 @@
 <?php
 /**
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage shared
  * @author Ingmar Runge 2011 - https://github.com/KiNgMaR - BSD license
  **/
 
 
 /**
  * Very simple, but hopefully effective tokenizer for Mustache templates.
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage shared
  **/
 class MustacheTokenizer
 {
@@ -194,8 +196,8 @@ class MustacheTokenizer
 /**
  * Mustache parser.
  *
- * @package CompilingMustache
- * @uses MustacheTokenizer
+ * @package php-mustache
+ * @subpackage shared
  **/
 class MustacheParser
 {

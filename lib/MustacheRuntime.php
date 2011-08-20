@@ -1,13 +1,15 @@
 <?php
 /**
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage shared
  * @author Ingmar Runge 2011 - https://github.com/KiNgMaR - BSD license
  **/
 
 
 /**
  *
- * @package CompilingMustache
+ * @package php-mustache
+ * @subpackage shared
  **/
 class MustacheRuntime
 {
@@ -105,6 +107,11 @@ class MustacheRuntime
 }
 
 
+/**
+ *
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheRuntimeStack extends SplStack
 {
 	public function __construct(&$view)
