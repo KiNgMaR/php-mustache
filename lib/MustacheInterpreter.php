@@ -64,10 +64,13 @@ class MustacheInterpreter
 		{
 			$secv = MustacheRuntime::lookUpVar($mustache_stack, $section->isDotNotation() ? $section->getNames() : $section->getName());
 
-			if($section instanceof MustacheParserInvertedSection && MustacheRuntime::sectionFalsey($secv))
+			if($section instanceof MustacheParserInvertedSection)
 			{
-				$mustache_stack->push($secv);
-				$do_run = true;
+				if(MustacheRuntime::sectionFalsey($secv))
+				{
+					$mustache_stack->push($secv);
+					$do_run = true;
+				}
 			}
 			else
 			{
