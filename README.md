@@ -4,9 +4,9 @@ http://mustache.github.com/
 
 php-mustache consists of three main components:
 
-- a mustache parser
+- a mustache tokenizer and parser
 - a mustache interpreter
-- a mustache PHP code generator, dubbed as "compiling mustache".
+- a mustache PHP code generator, dubbed "compiling mustache".
 
 It aims to be compliant with the official mustache specs, as found on
 https://github.com/mustache/spec
