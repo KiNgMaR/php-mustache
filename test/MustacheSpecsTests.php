@@ -1,6 +1,14 @@
 <?php
+/**
+ * @package php-mustache
+ * @subpackage tests
+ **/
 
-class CompilingMustacheSpecsTests
+/**
+ * @package php-mustache
+ * @subpackage tests
+ **/
+abstract class MustacheSpecsTests
 {
 	protected $tests = array();
 
@@ -49,17 +57,8 @@ class CompilingMustacheSpecsTests
 			return false;
 		}
 
-		$codegen = new MustachePHPCodeGen($parser);
-		$code = $codegen->generate('view');
-
-		$test_scope = function($view) use ($code)
-		{
-			eval('?>' . $code . '<?php ');
-		};
-
-		ob_start();
-		$test_scope($test->data);
-		$output = ob_get_clean();
+		$extra_info = '';
+		$output = $this->runFromParser($parser, $test->data, $extra_info);
 
 		$pass = (strcmp($output, $test->expected) == 0);
 
@@ -69,7 +68,7 @@ class CompilingMustacheSpecsTests
 		}
 		else
 		{
-			$info .= "TEST NOT PASSED:\n>output>\n" . $output . "\n<<>expected>\n" . $test->expected . "\n<<\n\nGENERATED CODE:\n\n$code";
+			$info .= "TEST NOT PASSED:\n>output>\n" . $output . "\n<<>expected>\n" . $test->expected . "\n<<\n\n" . (string)$extra_info;
 			$info .= "\n\nTEMPLATE:\n\n{$test->template}\n\nDATA:\n\n" . json_encode($test->data) . "\n";
 		}
 
@@ -104,10 +103,44 @@ class CompilingMustacheSpecsTests
 
 		echo "Passed $tests_passed/" . count($this->tests) . " tests!\n";
 	}
+
+	abstract protected function runFromParser(MustacheParser $parser, $data, &$extra_info = NULL);
+}
+
+
+class CompilingMustacheSpecsTests extends MustacheSpecsTests
+{
+	protected function runFromParser(MustacheParser $parser, $data, &$extra_info = NULL)
+	{
+		$codegen = new MustachePHPCodeGen($parser);
+		$code = $codegen->generate('view');
+
+		$test_scope = function($view) use ($code)
+		{
+			eval('?>' . $code . '<?php ');
+		};
+
+		ob_start();
+		$test_scope($data);
+
+		$extra_info = "GENERATED CODE:\n\n" . $code;
+
+		return ob_get_clean();
+	}
+}
+
+class MustacheInterpreterSpecsTests extends MustacheSpecsTests
+{
+	protected function runFromParser(MustacheParser $parser, $data, &$extra_info = NULL)
+	{
+		$mi = new MustacheInterpreter($parser);
+		return $mi->run($data);
+	}
 }
 
 require_once dirname(__FILE__) . '/../lib/MustachePhpCodeGen.php';
 require_once dirname(__FILE__) . '/../lib/MustacheRuntime.php';
+require_once dirname(__FILE__) . '/../lib/MustacheInterpreter.php';
 
 $tests = new CompilingMustacheSpecsTests();
 
