@@ -166,11 +166,11 @@ class MustacheInterpreter
 
 		if($var->escape())
 		{
-			return htmlspecialchars($v);
+			return htmlspecialchars($var->getIndent() . $v);
 		}
 		else
 		{
-			return $v;
+			return $var->getIndent() . $v;
 		}
 	}
 

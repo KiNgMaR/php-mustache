@@ -153,6 +153,23 @@ class MustacheTokenizer
 				// delimiter change!
 				$dlm_o = $match[1];
 				$dlm_c = $match[2];
+
+				if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRICT && count($this->tokens) > 0)
+				{
+					$prev_token = &$this->tokens[count($this->tokens) - 1];
+					$removed_trailing = false;
+
+					if(preg_match('~(\r?\n|$)~', $this->template, $match, 0, $end_pos + $dlm_c_len))
+					{
+						$advance_extra = strlen($match[0]);
+						$removed_trailing = true;
+					}
+
+					if($prev_token['t'] === self::TKN_LITERAL)
+					{
+						$prev_token['d'] = preg_replace('~(^|\r\n|\n)[ \t]*$~', ($removed_trailing ? '$1' : ''), $prev_token['d']);
+					}
+				}
 			}
 			else
 			{
@@ -453,6 +470,8 @@ class MustacheParser
 					// boring interpolation...
 					$tag = new MustacheParserVariable($token['d'], ($token['t'] != MustacheTokenizer::TKN_TAG_NOESCAPE) xor $modifier == '&');
 
+					if(isset($token['ind'])) $tag->setIndent($token['ind']);
+
 					$parent->addChild($tag);
 				}
 				else
@@ -487,6 +506,7 @@ class MustacheParser
 abstract class MustacheParserObject
 {
 	protected $parent = NULL;
+	protected $indent = '';
 
 	public function __construct(MustacheParserSection $parent = NULL)
 	{
@@ -501,6 +521,16 @@ abstract class MustacheParserObject
 	public function _setParent(MustacheParserSection $new_parent)
 	{
 		$this->parent = $new_parent;
+	}
+
+	public function setIndent($new)
+	{
+		$this->indent = $new;
+	}
+
+	public function getIndent()
+	{
+		return $this->indent;
 	}
 }
 
