@@ -132,7 +132,7 @@ class MustachePHPCodeGen
 	protected function generateRuntimeTemplate(MustacheParserRuntimeTemplate $tpl)
 	{
 		// is this really adequate?
-		$s = 'require_once ' . var_export(dirname(__FILE__) . '/../lib/MustacheInterpreter.php', true) . '; ';
+		$s = 'require_once ' . var_export(dirname(__FILE__) . '/MustacheInterpreter.php', true) . '; ';
 
 		$s .= 'echo MustacheRuntime::doRuntimeTemplate($mustache_stack, ' . var_export($this->whitespace_mode, true) . ', ' .
 			var_export($tpl->getName(), true) . ', ' . var_export($tpl->getPartials(), true) . ');';
