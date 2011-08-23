@@ -7,6 +7,20 @@
 
 
 /**
+ * Mustache whitespace handling: Don't spend extra CPU cycles on trying to be 100% conforming to the specs. This is the default mode.
+ **/
+define('MUSTACHE_WHITESPACE_LAZY', 1);
+/**
+ * Mustache whitespace handling: Try to be 100% conforming to the specs.
+ **/
+define('MUSTACHE_WHITESPACE_STRICT', 2);
+/**
+ * Mustache whitespace handling: Compact output, compact all superflous whitespace.
+ **/
+define('MUSTACHE_WHITESPACE_STRIP', 4);
+
+
+/**
  * Very simple, but hopefully effective tokenizer for Mustache templates.
  * @package php-mustache
  * @subpackage shared
@@ -70,15 +84,20 @@ class MustacheTokenizer
 	 * @var array
 	 **/
 	protected $tokens = array();
+	/**
+	 * @var int
+	 **/
+	protected $whitespace_mode;
 
 	/**
 	 * @param string $template
 	 **/
-	public function __construct($template)
+	public function __construct($template, $whitespace_mode = MUSTACHE_WHITESPACE_LAZY)
 	{
 		if(is_string($template))
 		{
 			$this->template = $template;
+			$this->whitespace_mode = $whitespace_mode;
 		}
 	}
 
@@ -120,12 +139,6 @@ class MustacheTokenizer
 			{
 				$skip = true;
 			}
-			elseif(preg_match('~^=\s*(\S+)\s+(\S+)\s*=$~', $tag_contents, $match))
-			{
-				// delimiter change!
-				$dlm_o = $match[1];
-				$dlm_c = $match[2];
-			}
 			elseif(strpos(self::SECTION_TYPES, $tag_contents[0]) !== false)
 			{
 				// t for token, m for modifier, d for data
@@ -134,6 +147,12 @@ class MustacheTokenizer
 			elseif(strpos(self::CLOSING_SECTION_TYPES, $tag_contents[0]) !== false)
 			{
 				$this->tokens[] = array('t' => self::TKN_SECTION_END, 'd' => trim(substr($tag_contents, 1)));
+			}
+			elseif(preg_match('~^=\s*(\S+)\s+(\S+)\s*=$~', $tag_contents, $match))
+			{
+				// delimiter change!
+				$dlm_o = $match[1];
+				$dlm_c = $match[2];
 			}
 			else
 			{
@@ -213,18 +232,27 @@ class MustacheParser
 	 * @var array
 	 **/
 	protected $partials = array();
+	/**
+	 * @var int
+	 * @see MUSTACHE_WHITESPACE_LAZY
+	 * @see MUSTACHE_WHITESPACE_STRICT
+	 * @see MUSTACHE_WHITESPACE_STRIP
+	 **/
+	protected $whitespace_mode;
 
 	/**
 	 * @param string $template
 	 **/
-	public function __construct($template)
+	public function __construct($template, $whitespace_mode = MUSTACHE_WHITESPACE_LAZY)
 	{
 		if(!is_string($template))
 		{
 			throw new MustacheParserException(__CLASS__ . '\'s constructor expects a template string, ' . gettype($template) . ' given.');
 		}
 
-		$tokenizer = new MustacheTokenizer($template);
+		$this->whitespace_mode = $whitespace_mode;
+
+		$tokenizer = new MustacheTokenizer($template, $whitespace_mode);
 
 		if(!$tokenizer->tokenize())
 		{
@@ -232,6 +260,14 @@ class MustacheParser
 		}
 
 		$this->tokens = $tokenizer->getTokens();
+	}
+
+	/**
+	 * @return int
+	 **/
+	public function getWhitespaceMode()
+	{
+		return $this->whitespace_mode;
 	}
 
 	/**
