@@ -198,7 +198,43 @@ class MustacheTokenizer
 			$this->tokens[] = array('t' => self::TKN_LITERAL, 'd' => substr($this->template, $prev_pos));
 		}
 
+		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRICT)
+		{
+			$this->doWhitespaceDetection();
+		}
+
 		return true;
+	}
+
+	/**
+	 * Strict whitespace mode detection & fixing... urgh...
+	 * WORK IN PROGRESS
+	 **/
+	protected function doWhitespaceDetection()
+	{
+		for($i = 0; $i < count($this->tokens); $i++)
+		{
+			if($this->tokens[$i]['t'] != self::TKN_LITERAL &&
+				($i == 0 || ($this->tokens[$i - 1]['t'] === self::TKN_LITERAL &&
+				preg_match('~\r?\n([ \t]*)$~', $this->tokens[$i - 1]['d'], $leading_match))) &&
+				($i + 1 == count($this->tokens) || ($this->tokens[$i + 1]['t'] === self::TKN_LITERAL &&
+				preg_match('~^\r?\n~', $this->tokens[$i + 1]['d'], $trailing_match))))
+			{
+				// standalone...
+				$this->tokens[$i]['sa'] = true;
+				$this->tokens[$i]['ind'] = ($i == 0 ? '' : $leading_match[1]);
+
+				if($i != 0 && strlen($leading_match[1]) > 0)
+				{
+					$this->tokens[$i - 1]['d'] = substr($this->tokens[$i - 1]['d'], 0, -strlen($leading_match[1]));
+				}
+
+				if($i + 1 < count($this->tokens))
+				{
+					$this->tokens[$i + 1]['d'] = substr($this->tokens[$i + 1]['d'], strlen($trailing_match[0]));
+				}
+			}
+		}
 	}
 
 	/**
