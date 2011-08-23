@@ -15,6 +15,5 @@ php-mustache has the basics up and running, but there are still some things
 left to implement, such as:
 
 - better whitespace treatment
-- recursive partials
 - lambdas
 - example code
