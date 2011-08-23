@@ -13,7 +13,14 @@
  **/
 class MustacheInterpreter
 {
+	/**
+	 * Root section from MustacheParser's getTree().
+	 * @var MustacheParserSection
+	 **/
 	protected $tree;
+	/**
+	 * @var int
+	 **/
 	protected $whitespace_mode;
 
 	/**
@@ -138,7 +145,8 @@ class MustacheInterpreter
 			if(!$is_root)
 			{
 				// avoid popping the last entry, it's required to stay when working with
-				// recursive partials.
+				// recursive partials (because they don't have an explicit root, the current
+				// topmost element just remains on the stack).
 				$mustache_stack->pop();
 			}
 		}
@@ -166,6 +174,14 @@ class MustacheInterpreter
 		}
 	}
 
+	/**
+	 * Runs a sub template, usually created by recursive partials that could (naturally) not be completely
+	 * resolved by the parser, so they have to be executed at runtime until section containing the recursive
+	 * {>element} is no longer executed.
+	 * @param MustacheRuntimeStack $mustache_stack
+	 * @param MustacheParserRuntimeTemplate $tpl
+	 * @return string Output.
+	 **/
 	protected function runSubTemplate(MustacheRuntimeStack $mustache_stack, MustacheParserRuntimeTemplate $tpl)
 	{
 		$parser = new MustacheParser($tpl->lookupSelf(), $this->whitespace_mode);
