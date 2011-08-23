@@ -14,6 +14,7 @@
 class MustacheInterpreter
 {
 	protected $tree;
+	protected $whitespace_mode;
 
 	/**
 	 * @param MustacheParser $parser Parser with the syntax tree.
@@ -21,6 +22,7 @@ class MustacheInterpreter
 	public function __construct(MustacheParser $parser)
 	{
 		$this->tree = $parser->getTree();
+		$this->whitespace_mode = $parser->getWhitespaceMode();
 	}
 
 	/**
@@ -37,9 +39,17 @@ class MustacheInterpreter
 
 		$mustache_stack = new MustacheRuntimeStack($view);
 
-		$result = $this->runInternal($mustache_stack, $this->tree);
+		return $this->runOnStack($mustache_stack);
+	}
 
-		return $result;
+	/**
+	 * Runs the previously assigned template against an existing stack.
+	 * @param MustacheRuntimeStack $mustache_stack
+	 * @return string Output.
+	 **/
+	public function runOnStack(MustacheRuntimeStack $mustache_stack)
+	{
+		return $this->runInternal($mustache_stack, $this->tree);
 	}
 
 	/**
@@ -61,6 +71,10 @@ class MustacheInterpreter
 		elseif($obj instanceof MustacheParserVariable)
 		{
 			return $this->runVar($mustache_stack, $obj);
+		}
+		elseif($obj instanceof MustacheParserRuntimeTemplate)
+		{
+			return $this->runSubTemplate($mustache_stack, $obj);
 		}
 	}
 
@@ -121,7 +135,12 @@ class MustacheInterpreter
 				$result .= $this->runInternal($mustache_stack, $child);
 			}
 
-			$mustache_stack->pop();
+			if(!$is_root)
+			{
+				// avoid popping the last entry, it's required to stay when working with
+				// recursive partials.
+				$mustache_stack->pop();
+			}
 		}
 
 		return $result;
@@ -145,6 +164,17 @@ class MustacheInterpreter
 		{
 			return $v;
 		}
+	}
+
+	protected function runSubTemplate(MustacheRuntimeStack $mustache_stack, MustacheParserRuntimeTemplate $tpl)
+	{
+		$parser = new MustacheParser($tpl->lookupSelf(), $this->whitespace_mode);
+		$parser->addPartials($tpl->getPartials());
+		$parser->parse();
+		// :TODO: cache parsed template, pass down to new MustacheInterpreter instances.
+
+		$mi = new MustacheInterpreter($parser);
+		return $mi->runOnStack($mustache_stack);
 	}
 }
 

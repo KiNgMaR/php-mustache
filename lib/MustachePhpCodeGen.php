@@ -20,10 +20,12 @@ class MustachePHPCodeGen
 	protected $tree = NULL;
 	protected $view_var_name;
 	protected $codebit_var;
+	protected $whitespace_mode;
 
 	public function __construct(MustacheParser $parser)
 	{
 		$this->tree = $parser->getTree();
+		$this->whitespace_mode = $parser->getWhitespaceMode();
 		$this->codebit_var = sprintf('%08X', crc32(getmypid() . microtime()));
 	}
 
@@ -50,6 +52,10 @@ class MustachePHPCodeGen
 		elseif($obj instanceof MustacheParserVariable)
 		{
 			return $this->generateVar($obj);
+		}
+		elseif($obj instanceof MustacheParserRuntimeTemplate)
+		{
+			return $this->generateRuntimeTemplate($obj);
 		}
 	}
 
@@ -121,6 +127,17 @@ class MustachePHPCodeGen
 		}
 
 		return self::PHP_OPEN . 'echo ' . $s . ';' . self::PHP_CLOSE_AFTER_OUTPUT;
+	}
+
+	protected function generateRuntimeTemplate(MustacheParserRuntimeTemplate $tpl)
+	{
+		// is this really adequate?
+		$s = 'require_once ' . var_export(dirname(__FILE__) . '/../lib/MustacheInterpreter.php', true) . '; ';
+
+		$s .= 'echo MustacheRuntime::doRuntimeTemplate($mustache_stack, ' . var_export($this->whitespace_mode, true) . ', ' .
+			var_export($tpl->getName(), true) . ', ' . var_export($tpl->getPartials(), true) . ');';
+
+		return self::PHP_OPEN . $s  . self::PHP_CLOSE;
 	}
 }
 

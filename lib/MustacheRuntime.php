@@ -17,7 +17,7 @@ class MustacheRuntime
 	 * @param array $stack
 	 * @param string|array $var_name
 	 **/
-	public static function lookUpVar(SplStack $stack, $var_name)
+	public static function lookUpVar(MustacheRuntimeStack $stack, $var_name)
 	{
 		$item = NULL;
 
@@ -45,7 +45,7 @@ class MustacheRuntime
 		return $item;
 	}
 
-	protected static function lookUpVarFlat(SplStack $stack, $var_name)
+	protected static function lookUpVarFlat(MustacheRuntimeStack $stack, $var_name)
 	{
 		foreach($stack as $ctx) // top2bottom
 		{
@@ -103,6 +103,15 @@ class MustacheRuntime
 	public static function sectionFalsey(&$section_var)
 	{
 		return empty($section_var);
+	}
+
+	public static function doRuntimeTemplate(MustacheRuntimeStack $mustache_stack, $whitespace_mode, $partial_name, array $partials)
+	{
+		$parser = new MustacheParser($partials[$partial_name], $whitespace_mode);
+		$parser->addPartials($partials);
+		$parser->parse(); // don't care about exceptions, syntax should have been validated at compile-time, at least for recursive partials
+		$mi = new MustacheInterpreter($parser);
+		return $mi->runOnStack($mustache_stack);
 	}
 }
 

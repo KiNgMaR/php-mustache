@@ -233,6 +233,11 @@ class MustacheParser
 	 **/
 	protected $partials = array();
 	/**
+	 * If this is a partial, its name is stored here.
+	 * @var string
+	 **/
+	protected $this_partial_name = NULL;
+	/**
 	 * @var int
 	 * @see MUSTACHE_WHITESPACE_LAZY
 	 * @see MUSTACHE_WHITESPACE_STRICT
@@ -311,8 +316,9 @@ class MustacheParser
 	 * References all partials from $partials, usually from another MustacheParser instance.
 	 * @param array& $partials
 	 **/
-	protected function refPartials(array& $partials)
+	protected function refPartials($this_partial_name, array& $partials)
 	{
+		$this->this_partial_name = $this_partial_name;
 		$this->partials = &$partials;
 	}
 
@@ -383,17 +389,27 @@ class MustacheParser
 					// resolve partial
 					if(isset($this->partials[$token['d']]))
 					{
-						$partial_parser = new self($this->partials[$token['d']]);
-						//$partial_parser->refPartials($this->partials);
-						// :TODO: detect recursive partials, interpret those at runtime
-						$partial_parser->parse();
-
-						foreach($partial_parser->getTree() as $partial_child)
+						if(is_string($this->this_partial_name) && !strcmp($this->this_partial_name, $token['d']))
 						{
-							$parent->addChild($partial_child);
-						}
+							// recursive partial
+							$tag = new MustacheParserRuntimeTemplate($token['d'], $this->partials);
 
-						unset($partial_parser);
+							$parent->addChild($tag);
+						}
+						else
+						{
+							// resolve partials at "compile-time":
+							$partial_parser = new self($this->partials[$token['d']]);
+							$partial_parser->refPartials($token['d'], $this->partials);
+							$partial_parser->parse();
+
+							foreach($partial_parser->getTree() as $partial_child)
+							{
+								$parent->addChild($partial_child);
+							}
+
+							unset($partial_parser);
+						}
 					}
 				}
 				elseif($modifier == '&' || $modifier == '')
@@ -542,6 +558,34 @@ class MustacheParserVariable extends MustacheParserObjectWithName
 	public function escape()
 	{
 		return $this->escape;
+	}
+}
+
+
+class MustacheParserRuntimeTemplate extends MustacheParserObject
+{
+	protected $name;
+	protected $partials;
+
+	public function __construct($name, array $partials)
+	{
+		$this->name = $name;
+		$this->partials = $partials;
+	}
+
+	public function lookupSelf()
+	{
+		return $this->partials[$this->name];
+	}
+
+	public function getPartials()
+	{
+		return $this->partials;
+	}
+
+	public function getName()
+	{
+		return $this->name;
 	}
 }
 
