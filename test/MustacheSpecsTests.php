@@ -67,7 +67,7 @@ abstract class MustacheSpecsTests
 	{
 		$info = 'Running test "' . $test->name . '" (' . $test->desc . ")...\n\n";
 
-		$parser = new MustacheParser($test->template);
+		$parser = new MustacheParser($test->template, MUSTACHE_WHITESPACE_STRICT);
 
 		if(isset($test->partials))
 		{
