@@ -190,7 +190,9 @@ class MustacheInterpreter
 		// :TODO: cache parsed template, pass down to new MustacheInterpreter instances.
 
 		$mi = new MustacheInterpreter($parser);
-		return $mi->runOnStack($mustache_stack);
+		$result = $mi->runOnStack($mustache_stack);
+		
+		return str_replace("\n", "\n" . $tpl->getIndent(), $result);
 	}
 }
 

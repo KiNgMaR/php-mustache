@@ -50,6 +50,10 @@ class MustacheTokenizer
 	 * other tags and do not have a closing counter-part.
 	 **/
 	const TAG_TYPES = '!>&';
+	/**
+	 * Defines the tag type that denotes a comment.
+	 **/
+	const COMMENT_TYPE = '!';
 
 	/**
 	 * Constant that denotes a literal token.
@@ -67,6 +71,10 @@ class MustacheTokenizer
 	 * Constant that denotes a tag token.
 	 **/
 	const TKN_TAG = 'TAG';
+	/**
+	 * Constant that denotes a comment token.
+	 **/
+	const TKN_COMMENT = 'COMMENT';
 	/**
 	 * Constant that denotes a tag token with escaping disabled.
 	 **/
@@ -112,6 +120,7 @@ class MustacheTokenizer
 
 		$pos = strpos($this->template, $dlm_o);
 		$prev_pos = 0;
+		$line = 0;
 
 		while($pos !== false)
 		{
@@ -127,6 +136,7 @@ class MustacheTokenizer
 				$this->tokens[] = array('t' => self::TKN_LITERAL, 'd' => substr($this->template, $prev_pos, $pos - $prev_pos));
 			}
 
+			$new_token = NULL;
 			$skip = false;
 			$advance_extra = 0;
 
@@ -142,34 +152,21 @@ class MustacheTokenizer
 			elseif(strpos(self::SECTION_TYPES, $tag_contents[0]) !== false)
 			{
 				// t for token, m for modifier, d for data
-				$this->tokens[] = array('t' => self::TKN_SECTION_START, 'm' => $tag_contents[0], 'd' => trim(substr($tag_contents, 1)));
+				$new_token = array('t' => self::TKN_SECTION_START, 'm' => $tag_contents[0], 'd' => trim(substr($tag_contents, 1)));
 			}
 			elseif(strpos(self::CLOSING_SECTION_TYPES, $tag_contents[0]) !== false)
 			{
-				$this->tokens[] = array('t' => self::TKN_SECTION_END, 'd' => trim(substr($tag_contents, 1)));
+				$new_token = array('t' => self::TKN_SECTION_END, 'd' => trim(substr($tag_contents, 1)));
 			}
 			elseif(preg_match('~^=\s*(\S+)\s+(\S+)\s*=$~', $tag_contents, $match))
 			{
 				// delimiter change!
 				$dlm_o = $match[1];
 				$dlm_c = $match[2];
-
-				if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRICT && count($this->tokens) > 0)
-				{
-					$prev_token = &$this->tokens[count($this->tokens) - 1];
-					$removed_trailing = false;
-
-					if(preg_match('~(\r?\n|$)~', $this->template, $match, 0, $end_pos + $dlm_c_len))
-					{
-						$advance_extra = strlen($match[0]);
-						$removed_trailing = true;
-					}
-
-					if($prev_token['t'] === self::TKN_LITERAL)
-					{
-						$prev_token['d'] = preg_replace('~(^|\r\n|\n)[ \t]*$~', ($removed_trailing ? '$1' : ''), $prev_token['d']);
-					}
-				}
+			}
+			elseif(strpos(self::COMMENT_TYPE, $tag_contents[0]) !== false)
+			{
+				$new_token = array('t' => self::COMMENT_TYPE, 'd' => trim($tag_contents));
 			}
 			else
 			{
@@ -182,7 +179,7 @@ class MustacheTokenizer
 					{
 						$tag_contents = substr($tag_contents, 1);
 						$t = self::TKN_TAG_NOESCAPE;
-						$advance_extra = 1; // get rid of extra } from closing delimiter
+						$advance_extra += 1; // get rid of extra } from closing delimiter
 					}
 				}
 
@@ -192,12 +189,64 @@ class MustacheTokenizer
 				}
 				elseif(strpos(self::TAG_TYPES, $tag_contents[0]) !== false)
 				{
-					$this->tokens[] = array('t' => $t, 'm' => $tag_contents[0], 'd' => trim(substr($tag_contents, 1)));
+					$new_token = array('t' => $t, 'm' => $tag_contents[0], 'd' => trim(substr($tag_contents, 1)));
 				}
 				else
 				{
-					$this->tokens[] = array('t' => $t, 'd' => trim($tag_contents));
+					$new_token = array('t' => $t, 'd' => trim($tag_contents));
 				}
+			}
+
+			// beautiful code is over, here comes the fugly whitespacing fixing mess!
+
+			$standalone = NULL;
+			$sa_indent = '';
+			if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRICT)
+			{
+				if(count($this->tokens) > 0)
+				{
+					$prev_token = &$this->tokens[count($this->tokens) - 1];
+				}
+				else
+				{
+					$prev_token = NULL;
+				}
+
+				$line_index = substr_count($this->template, "\n", 0, ($pos > 0 ? $pos : strlen($this->template)));
+
+				$standalone = (!$new_token || ($new_token['t'] != self::TKN_TAG && $new_token['t'] != self::TKN_TAG_NOESCAPE)) &&
+					($prev_token === NULL || ($prev_token['t'] !== self::TKN_LITERAL && $prev_token['line'] != $line_index) || (bool)preg_match('~(?:' . (count($this->tokens) == 1 ? '^|' : '') . '\r?\n)([\t ]*)$~D', $prev_token['d'], $match))
+					&& (bool)preg_match('~^(\r?\n|$)~D', substr($this->template, $end_pos + $dlm_c_len + $advance_extra), $match2);
+
+				if($standalone)
+				{
+					$sa_indent = isset($match[1]) ? $match[1] : '';
+
+					if(strlen($sa_indent) > 0 && $prev_token['t'] === self::TKN_LITERAL)
+					{
+						$prev_token['d'] = substr($prev_token['d'], 0, -strlen($sa_indent));
+					}
+
+					$advance_extra += strlen($match2[1]);
+
+					if($new_token)
+					{
+						$new_token['sa'] = true;
+						$new_token['ind'] = $sa_indent;
+					}
+				}
+			}
+			else
+			{
+				unset($line_index);
+			}
+
+			// end of whitespace fixing mess.
+
+			if($new_token)
+			{
+				if(isset($line_index)) $new_token['line'] = $line_index;
+				$this->tokens[] = $new_token;
 			}
 
 			if(!$skip)
@@ -215,43 +264,7 @@ class MustacheTokenizer
 			$this->tokens[] = array('t' => self::TKN_LITERAL, 'd' => substr($this->template, $prev_pos));
 		}
 
-		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRICT)
-		{
-			$this->doWhitespaceDetection();
-		}
-
 		return true;
-	}
-
-	/**
-	 * Strict whitespace mode detection & fixing... urgh...
-	 * WORK IN PROGRESS
-	 **/
-	protected function doWhitespaceDetection()
-	{
-		for($i = 0; $i < count($this->tokens); $i++)
-		{
-			if($this->tokens[$i]['t'] != self::TKN_LITERAL &&
-				($i == 0 || ($this->tokens[$i - 1]['t'] === self::TKN_LITERAL &&
-				preg_match('~\r?\n([ \t]*)$~', $this->tokens[$i - 1]['d'], $leading_match))) &&
-				($i + 1 == count($this->tokens) || ($this->tokens[$i + 1]['t'] === self::TKN_LITERAL &&
-				preg_match('~^\r?\n~', $this->tokens[$i + 1]['d'], $trailing_match))))
-			{
-				// standalone...
-				$this->tokens[$i]['sa'] = true;
-				$this->tokens[$i]['ind'] = ($i == 0 ? '' : $leading_match[1]);
-
-				if($i != 0 && strlen($leading_match[1]) > 0)
-				{
-					$this->tokens[$i - 1]['d'] = substr($this->tokens[$i - 1]['d'], 0, -strlen($leading_match[1]));
-				}
-
-				if($i + 1 < count($this->tokens))
-				{
-					$this->tokens[$i + 1]['d'] = substr($this->tokens[$i + 1]['d'], strlen($trailing_match[0]));
-				}
-			}
-		}
 	}
 
 	/**
@@ -430,14 +443,14 @@ class MustacheParser
 
 				$parent = $top_sect->getParent(); // restore parent
 			}
+			elseif($token['t'] == MustacheTokenizer::TKN_COMMENT)
+			{
+				// it's a comment, ignore it
+			}
 			elseif($token['t'] == MustacheTokenizer::TKN_TAG || $token['t'] == MustacheTokenizer::TKN_TAG_NOESCAPE)
 			{
 				$modifier = isset($token['m']) ? $token['m'] : '';
-				if($modifier == '!')
-				{
-					// it's a comment, ignore it
-				}
-				elseif($modifier == '>')
+				if($modifier == '>')
 				{
 					// resolve partial
 					if(isset($this->partials[$token['d']]))
