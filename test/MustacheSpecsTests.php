@@ -102,6 +102,10 @@ abstract class MustacheSpecsTests
 			// collect some debug information for failed tests:
 			$info .= "TEST NOT PASSED:\n>output>\n" . $output . "\n<<>expected>\n" . $test->expected . "\n<<\n\n" . (string)$extra_info;
 			$info .= "\n\nTEMPLATE:\n\n{$test->template}\n\nDATA:\n\n" . json_encode($test->data) . "\n";
+			if(!empty($test->partials))
+			{
+				$info .= "\nPARTIALS:\n\n" . print_r($test->partials, true) . "\n";
+			}
 		}
 
 		return $pass;

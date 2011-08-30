@@ -54,6 +54,10 @@ class MustacheTokenizer
 	 * Defines the tag type that denotes a comment.
 	 **/
 	const COMMENT_TYPE = '!';
+	/**
+	 * Defines the tag type that denotes a partial.
+	 **/
+	const PARTIAL_TYPE = '>';
 
 	/**
 	 * Constant that denotes a literal token.
@@ -72,9 +76,13 @@ class MustacheTokenizer
 	 **/
 	const TKN_TAG = 'TAG';
 	/**
-	 * Constant that denotes a comment token.
+	 * Constant that denotes a comment tag token.
 	 **/
 	const TKN_COMMENT = 'COMMENT';
+	/**
+	 * Constant that denotes a partial tag token.
+	 **/
+	const TKN_PARTIAL = 'PARTIAL';
 	/**
 	 * Constant that denotes a tag token with escaping disabled.
 	 **/
@@ -164,9 +172,13 @@ class MustacheTokenizer
 				$dlm_o = $match[1];
 				$dlm_c = $match[2];
 			}
-			elseif(strpos(self::COMMENT_TYPE, $tag_contents[0]) !== false)
+			elseif($tag_contents[0] === self::COMMENT_TYPE)
 			{
-				$new_token = array('t' => self::COMMENT_TYPE, 'd' => trim($tag_contents));
+				$new_token = array('t' => self::TKN_COMMENT, 'd' => trim(substr($tag_contents, 1)));
+			}
+			elseif($tag_contents[0] === self::PARTIAL_TYPE)
+			{
+				$new_token = array('t' => self::TKN_PARTIAL, 'd' => trim(substr($tag_contents, 1)));
 			}
 			else
 			{
@@ -447,38 +459,41 @@ class MustacheParser
 			{
 				// it's a comment, ignore it
 			}
+			elseif($token['t'] == MustacheTokenizer::TKN_PARTIAL)
+			{
+				// resolve partial
+				if(isset($this->partials[$token['d']]))
+				{
+					if(is_string($this->this_partial_name) && !strcmp($this->this_partial_name, $token['d']))
+					{
+						// recursive partial
+						$tag = new MustacheParserRuntimeTemplate($token['d'], $this->partials);
+
+						if(isset($token['ind'])) $tag->setIndent($token['ind']);
+
+						$parent->addChild($tag);
+					}
+					else
+					{
+						// resolve partials at "compile-time":
+						$partial_parser = new self($this->partials[$token['d']]);
+						$partial_parser->refPartials($token['d'], $this->partials);
+						$partial_parser->parse();
+
+						foreach($partial_parser->getTree() as $partial_child)
+						{
+							$parent->addChild($partial_child);
+						}
+
+						unset($partial_parser);
+					}
+				}
+			}
 			elseif($token['t'] == MustacheTokenizer::TKN_TAG || $token['t'] == MustacheTokenizer::TKN_TAG_NOESCAPE)
 			{
 				$modifier = isset($token['m']) ? $token['m'] : '';
-				if($modifier == '>')
-				{
-					// resolve partial
-					if(isset($this->partials[$token['d']]))
-					{
-						if(is_string($this->this_partial_name) && !strcmp($this->this_partial_name, $token['d']))
-						{
-							// recursive partial
-							$tag = new MustacheParserRuntimeTemplate($token['d'], $this->partials);
 
-							$parent->addChild($tag);
-						}
-						else
-						{
-							// resolve partials at "compile-time":
-							$partial_parser = new self($this->partials[$token['d']]);
-							$partial_parser->refPartials($token['d'], $this->partials);
-							$partial_parser->parse();
-
-							foreach($partial_parser->getTree() as $partial_child)
-							{
-								$parent->addChild($partial_child);
-							}
-
-							unset($partial_parser);
-						}
-					}
-				}
-				elseif($modifier == '&' || $modifier == '')
+				if($modifier == '&' || $modifier == '')
 				{
 					// boring interpolation...
 					$tag = new MustacheParserVariable($token['d'], ($token['t'] != MustacheTokenizer::TKN_TAG_NOESCAPE) xor $modifier == '&');

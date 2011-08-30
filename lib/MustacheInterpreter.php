@@ -191,8 +191,8 @@ class MustacheInterpreter
 
 		$mi = new MustacheInterpreter($parser);
 		$result = $mi->runOnStack($mustache_stack);
-		
-		return str_replace("\n", "\n" . $tpl->getIndent(), $result);
+
+		return preg_replace('~\r?\n~', '$0' . $tpl->getIndent(), $result);
 	}
 }
 
