@@ -20,6 +20,7 @@ class MustachePHPCodeGen
 	protected $tree = NULL;
 	protected $view_var_name;
 	protected $codebit_var;
+	protected $section_idx = 0;
 	protected $whitespace_mode;
 
 	public function __construct(MustacheParser $parser)
@@ -69,7 +70,12 @@ class MustachePHPCodeGen
 	{
 		$is_root = ($section->getName() === '#ROOT#');
 
-		$section_id = sprintf('%08X', crc32(microtime() . $section->getName()));
+		$section_id = ++$this->section_idx;
+		if($is_root == 1)
+		{
+			// use a _globally_ unique identifier outside template sections:
+			$section_id = $this->codebit_var;
+		}
 
 		$s = '';
 
