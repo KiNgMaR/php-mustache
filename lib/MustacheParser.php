@@ -224,23 +224,32 @@ class MustacheTokenizer
 					$prev_token = NULL;
 				}
 
+				// slowpoke is slow...
 				$line_index = substr_count($this->template, "\n", 0, ($pos > 0 ? $pos : strlen($this->template)));
 
+				// let's dissect this a bit:
+				// condition A: there's no new token (=delimiter change, invalid stuff) or the new token is not a tag (so a section, partial, etc.)
+				// condition B: this is the first token or at least not preceded by a different token on the same line, or only preceded by whitespace (in a literal)
+				// condition C: there's nothing but a newline or the end of the template following this token
 				$standalone = (!$new_token || ($new_token['t'] != self::TKN_TAG && $new_token['t'] != self::TKN_TAG_NOESCAPE)) &&
 					($prev_token === NULL || ($prev_token['t'] !== self::TKN_LITERAL && $prev_token['line'] != $line_index) || (bool)preg_match('~(?:' . (count($this->tokens) == 1 ? '^|' : '') . '\r?\n)([\t ]*)$~D', $prev_token['d'], $match))
 					&& (bool)preg_match('~^(\r?\n|$)~D', substr($this->template, $end_pos + $dlm_c_len + $advance_extra), $match2);
 
 				if($standalone)
 				{
+					// capture indentation:
 					$sa_indent = isset($match[1]) ? $match[1] : '';
 
+					// remove it from the preceding literal token, if necessary:
 					if(strlen($sa_indent) > 0 && $prev_token['t'] === self::TKN_LITERAL)
 					{
 						$prev_token['d'] = substr($prev_token['d'], 0, -strlen($sa_indent));
 					}
 
+					// skip trailing newline:
 					$advance_extra += strlen($match2[1]);
 
+					// store token properties:
 					if($new_token)
 					{
 						$new_token['sa'] = true;
@@ -480,6 +489,8 @@ class MustacheParser
 						$partial_parser->refPartials($token['d'], $this->partials);
 						$partial_parser->parse();
 
+						// :TODO: consider indentation
+
 						foreach($partial_parser->getTree() as $partial_child)
 						{
 							$parent->addChild($partial_child);
@@ -531,31 +542,62 @@ class MustacheParser
 }
 
 
+/**
+ * An object extracted by the parser. Used by code gens, interpreters and such.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 abstract class MustacheParserObject
 {
+	/**
+	 * Parent element. Not all derived objects use this.
+	 * @var MustacheParserSection|NULL
+	 **/
 	protected $parent = NULL;
+	/**
+	 * Whitespace string that defines this object's indentation. Used by partials mostly.
+	 * @var string
+	 **/
 	protected $indent = '';
 
+	/**
+	 * Constructor.
+	 * @param MustacheParserSection $parent Really only used for sections so far.
+	 **/
 	public function __construct(MustacheParserSection $parent = NULL)
 	{
 		$this->parent = $parent;
 	}
 
+	/**
+	 * @return MustacheParserSection|NULL
+	 **/
 	public function getParent()
 	{
 		return $this->parent;
 	}
 
+	/**
+	 * Corrects or sets this object's parent element. Used by addChild in section objects.
+	 * @see MustacheParserSection::addChild
+	 **/
 	public function _setParent(MustacheParserSection $new_parent)
 	{
 		$this->parent = $new_parent;
 	}
 
+	/**
+	 * Sets the whitespace/indentation to store with this element.
+	 * @param string $new Whitespace characters.
+	 **/
 	public function setIndent($new)
 	{
 		$this->indent = $new;
 	}
 
+	/**
+	 * Returns the indent string, usually empty or a number of whitespace characters.
+	 **/
 	public function getIndent()
 	{
 		return $this->indent;
@@ -563,11 +605,30 @@ abstract class MustacheParserObject
 }
 
 
+/**
+ * An object extracted by the parser, with an entity name. Provides helper methods
+ * for dealing with dot-notation syntax.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 abstract class MustacheParserObjectWithName extends MustacheParserObject
 {
+	/**
+	 * "Variable" name, e.g. "view" or "object.description".
+	 * @var string
+	 **/
 	protected $name;
+	/**
+	 * Dot-notation parts as an array.
+	 * @var array
+	 **/
 	protected $dot_parts;
 
+	/**
+	 * Constructor.
+	 * @param string $name
+	 * @param MustacheParserSection|null $parent
+	 **/
 	public function __construct($name, MustacheParserSection $parent = NULL)
 	{
 		parent::__construct($parent);
@@ -575,16 +636,28 @@ abstract class MustacheParserObjectWithName extends MustacheParserObject
 		$this->dot_parts = ($this->name == '.' ? array('.') : explode('.', $name));
 	}
 
+	/**
+	 * Returns whether this object's name makes use of dot-notation.
+	 * @return boolean
+	 **/
 	public function isDotNotation()
 	{
 		return (count($this->dot_parts) > 1);
 	}
 
+	/**
+	 * Returns this object's name.
+	 * @return string
+	 **/
 	public function getName()
 	{
 		return $this->name;
 	}
 
+	/**
+	 * Returns this object's names, as an array. Useful with dot-notation.
+	 * @return array
+	 **/
 	public function getNames()
 	{
 		return $this->dot_parts;
@@ -607,6 +680,8 @@ class MustacheParserSection extends MustacheParserObjectWithName implements Iter
 		$child->_setParent($this);
 		$this->children[] = $child;
 	}
+
+	// Iterator interface implementation:
 
 	private $it_pos = 0;
 	function rewind() { $this->it_pos = 0; }
