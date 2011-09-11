@@ -14,6 +14,7 @@ https://github.com/mustache/spec
 php-mustache has the basics up and running, but there are still some things
 left to implement, such as:
 
-- better whitespace treatment
 - lambdas
 - example code
+- fix some failing tests related to whitespace handling
+
