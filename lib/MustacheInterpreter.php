@@ -46,7 +46,15 @@ class MustacheInterpreter
 
 		$mustache_stack = new MustacheRuntimeStack($view);
 
-		return $this->runOnStack($mustache_stack);
+		$result = $this->runOnStack($mustache_stack);
+
+		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRIP)
+		{
+			// remove whitespace that accumulated from around gone conditionals and such.
+			$result = preg_replace('~\s+~', ' ', trim($result));
+		}
+
+		return $result;
 	}
 
 	/**

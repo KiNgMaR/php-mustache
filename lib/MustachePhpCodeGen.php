@@ -37,6 +37,11 @@ class MustachePHPCodeGen
 		$code = $this->generateInternal($this->tree);
 		$code = str_replace(self::PHP_CLOSE . self::PHP_OPEN, "\n", $code);
 
+		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRIP)
+		{
+			$code = self::stripPhpWhitespace($code);
+		}
+
 		return $code;
 	}
 
@@ -73,7 +78,7 @@ class MustachePHPCodeGen
 		$section_id = ++$this->section_idx;
 		if($is_root == 1)
 		{
-			// use a _globally_ unique identifier outside template sections:
+			// use a _globally_ unique identifier outside template sections (i.e. outside closures):
 			$section_id = $this->codebit_var;
 		}
 
@@ -144,6 +149,47 @@ class MustachePHPCodeGen
 			var_export($tpl->getName(), true) . ', ' . var_export($tpl->getPartials(), true) . ');';
 
 		return self::PHP_OPEN . $s  . self::PHP_CLOSE;
+	}
+
+	/**
+	 * Removes/compacts whitespace from PHP code.
+	 * @param string $code
+	 * @return string
+	 **/
+	protected static function stripPhpWhitespace($code)
+	{
+		$ret = '';
+		$tokens = token_get_all($code);
+
+		foreach($tokens as $token)
+		{
+			if(!is_array($token))
+			{
+				$ret .= $token;
+			}
+			else
+			{
+				switch($token[0])
+				{
+				case T_COMMENT:
+				case T_DOC_COMMENT:
+					// entirely remove comments
+					break;
+				case T_WHITESPACE:
+					// compact whitespace to one space character
+					$ret .= ' ';
+					break;
+				case T_CLOSE_TAG:
+					// a T_CLOSE_TAG is often followed by an implicit new line
+					$ret .= '?>';
+					break;
+				default:
+					$ret .= $token[1];
+				}
+			}
+		}
+
+		return $ret;
 	}
 }
 

@@ -126,6 +126,13 @@ class MustacheTokenizer
 		$dlm_o = self::DEFAULT_DELIMITER_OPEN;
 		$dlm_c = self::DEFAULT_DELIMITER_CLOSE;
 
+		// radically compact whitespace in the template:
+		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRIP)
+		{
+			$this->template = preg_replace('~\s+~', ' ', $this->template);
+		}
+
+		// start tokenizing:
 		$pos = strpos($this->template, $dlm_o);
 		$prev_pos = 0;
 		$line = 0;
