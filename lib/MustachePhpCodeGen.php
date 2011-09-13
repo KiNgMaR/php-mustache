@@ -32,6 +32,11 @@ class MustachePHPCodeGen
 
 	public function generate($view_var_name)
 	{
+		if(!is_string($view_var_name) || !is_object($this->tree))
+		{
+			return false;
+		}
+
 		$this->view_var_name = $view_var_name;
 
 		$code = $this->generateInternal($this->tree);
