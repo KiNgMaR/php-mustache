@@ -34,12 +34,13 @@ class MustacheInterpreter
 
 	/**
 	 * Runs the previously assigned template tree against the view data in $view.
+	 * Returns false if the $parser from the constructor didn't provide a valid tree or if the $view is empty.
 	 * @param object|array $view
-	 * @return string Output, or false if $view is invalid.
+	 * @return string Output or false.
 	 **/
 	public function run($view)
 	{
-		if(!is_array($view) && !is_object($view))
+		if(!is_object($this->tree) || !is_array($view) && !is_object($view))
 		{
 			return false;
 		}
@@ -60,10 +61,15 @@ class MustacheInterpreter
 	/**
 	 * Runs the previously assigned template against an existing stack.
 	 * @param MustacheRuntimeStack $mustache_stack
-	 * @return string Output.
+	 * @return string Output or false.
 	 **/
 	public function runOnStack(MustacheRuntimeStack $mustache_stack)
 	{
+		if(!is_object($this->tree))
+		{
+			return false;
+		}
+
 		return $this->runInternal($mustache_stack, $this->tree);
 	}
 
