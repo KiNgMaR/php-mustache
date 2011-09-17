@@ -190,8 +190,8 @@ class MustacheInterpreter
 
 	/**
 	 * Runs a sub template, usually created by recursive partials that could (naturally) not be completely
-	 * resolved by the parser, so they have to be executed at runtime until section containing the recursive
-	 * {>element} is no longer executed.
+	 * resolved by the parser, so they have to be executed at runtime until the section containing the recursive
+	 * {>element} becomes falsey.
 	 * @param MustacheRuntimeStack $mustache_stack
 	 * @param MustacheParserRuntimeTemplate $tpl
 	 * @return string Output.
