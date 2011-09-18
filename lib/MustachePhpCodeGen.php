@@ -13,16 +13,46 @@
  **/
 class MustachePHPCodeGen
 {
+	/**
+	 * Internal: Opening PHP tag.
+	 **/
 	const PHP_OPEN = '<?php ';
+	/**
+	 * Internal: Closing PHP tag.
+	 **/
 	const PHP_CLOSE = " ?>";
+	/**
+	 * Internal: Closing PHP tag after code that outputs stuff.
+	 **/
 	const PHP_CLOSE_AFTER_OUTPUT = " ?>\n";
 
+	/**
+	 * Root section from MustacheParser's getTree().
+	 * @var MustacheParserSection
+	 **/
 	protected $tree = NULL;
+	/**
+	 * @var string
+	 **/
 	protected $view_var_name;
+	/**
+	 * Random string for unique variable names.
+	 * @var string
+	 **/
 	protected $codebit_var;
+	/**
+	 * Section index for even more unique variable names.
+	 * @var int
+	 **/
 	protected $section_idx = 0;
+	/**
+	 * @var int
+	 **/
 	protected $whitespace_mode;
 
+	/**
+	 * @param MustacheParser $parser Parser with the syntax tree.
+	 **/
 	public function __construct(MustacheParser $parser)
 	{
 		$this->tree = $parser->getTree();
@@ -30,6 +60,12 @@ class MustachePHPCodeGen
 		$this->codebit_var = sprintf('%08X', crc32(getmypid() . microtime()));
 	}
 
+	/**
+	 * Does the magic, i.e. turns the given parser tree into PHP code that
+	 * processes the data from $view_var_name according to the template.
+	 * @param string $view_var_name
+	 * @return string Returns false if there's no parser tree or no data variable.
+	 **/
 	public function generate($view_var_name)
 	{
 		if(!is_string($view_var_name) || !is_object($this->tree))
@@ -39,7 +75,9 @@ class MustachePHPCodeGen
 
 		$this->view_var_name = $view_var_name;
 
+		// start code generation:
 		$code = $this->generateInternal($this->tree);
+		/* remove ?><?php */
 		$code = str_replace(self::PHP_CLOSE . self::PHP_OPEN, "\n", $code);
 
 		if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRIP)
@@ -70,7 +108,7 @@ class MustachePHPCodeGen
 		}
 	}
 
-	static protected function varToPhp(MustacheParserObjectWithName &$var)
+	static protected function varToPhp(MustacheParserObjectWithName $var)
 	{
 		// var_export takes care of escaping matters plus nicely formats arrays into PHP syntax.
 		return var_export($var->isDotNotation() ? $var->getNames() : $var->getName(), true);
