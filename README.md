@@ -17,4 +17,5 @@ left to implement, such as:
 - lambdas
 - example code
 - fix some failing tests related to whitespace handling
+- properly treat view objects' methods
 
