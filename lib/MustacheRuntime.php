@@ -124,8 +124,8 @@ class MustacheRuntime
 		}
 		elseif(is_object($section_var))
 		{
-			// convert stdClass-like object to array.
-			$section_var = (array)$section_var;
+			// this must be pushed onto the context stack.
+			$section_var = array($section_var);
 			return true;
 		}
 
