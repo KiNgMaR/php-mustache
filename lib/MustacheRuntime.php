@@ -30,17 +30,21 @@ class MustacheRuntime
 		}
 		else
 		{
-			if(is_array($var_name))
+			if(is_array($var_name)) // is this dot syntax?
 			{
+				// find first item on current stack level:
 				$item = self::lookUpVarFlat($stack, array_shift($var_name));
 
-				while(count($var_name) > 0)
+				// while the current var_name resolves to a new view context,
+				// walk that context with the next var_name part...
+				while(count($var_name) > 0 && $item)
 				{
 					$item = self::lookUpVarInContext($item, array_shift($var_name));
 				}
 			}
 			else
 			{
+				// no dot syntax, do a simple lookup.
 				$item = self::lookUpVarFlat($stack, $var_name);
 			}
 		}
@@ -48,6 +52,13 @@ class MustacheRuntime
 		return $item;
 	}
 
+	/**
+	 * Performs a simple variable lookup against the given stack by walking it from
+	 * top to bottom and checking for the existence of a member with the given name.
+	 * @param MustacheRuntimeStack $stack
+	 * @param string $var_name
+	 * @return mixed Returns an empty string if there's no matching variable on any stack level.
+	 **/
 	protected static function lookUpVarFlat(MustacheRuntimeStack $stack, $var_name)
 	{
 		foreach($stack as $ctx) // top2bottom
@@ -63,6 +74,13 @@ class MustacheRuntime
 		return '';
 	}
 
+	/**
+	 * Checks whether the stack member (context) $ctx contains an entity of the given name.
+	 * Behaves accordingly to the specs when it comes to lists, objects, member functions and such.
+	 * @param mixed $ctx
+	 * @param string $var_name
+	 * @return NULL|mixed
+	 **/
 	protected static function lookUpVarInContext($ctx, $var_name)
 	{
 		if(is_array($ctx) && isset($ctx[$var_name]))
@@ -73,6 +91,7 @@ class MustacheRuntime
 		{
 			return $ctx->$var_name;
 		}
+		// :TODO: check for callable members
 
 		return NULL;
 	}
