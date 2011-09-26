@@ -88,6 +88,11 @@ class MustachePHPCodeGen
 		return $code;
 	}
 
+	/**
+	 * Branches into the appropriate generating method based on $obj's class.
+	 * @param MustacheParserObject $obj child class instance inheriting from MustacheParserObject
+	 * @return string
+	 **/
 	protected function generateInternal(MustacheParserObject $obj)
 	{
 		if($obj instanceof MustacheParserSection)
@@ -96,6 +101,7 @@ class MustachePHPCodeGen
 		}
 		elseif($obj instanceof MustacheParserLiteral)
 		{
+			// just return the contents, no fuzz:
 			return $obj->getContents();
 		}
 		elseif($obj instanceof MustacheParserVariable)
@@ -108,12 +114,22 @@ class MustachePHPCodeGen
 		}
 	}
 
+	/**
+	 * Returns PHP code that later (at runtime) evaluates to $var's contents. Also handles dot-notation style variables.
+	 * @param MustacheParserObjectWithName $var
+	 * @return string
+	 **/
 	static protected function varToPhp(MustacheParserObjectWithName $var)
 	{
 		// var_export takes care of escaping matters plus nicely formats arrays into PHP syntax.
 		return var_export($var->isDotNotation() ? $var->getNames() : $var->getName(), true);
 	}
 
+	/**
+	 * Generates PHP code that runs a {section} based on the current context.
+	 * @param $MustacheParserSection $section
+	 * @return string
+	 **/
 	protected function generateSection(MustacheParserSection $section)
 	{
 		$is_root = ($section->getName() === '#ROOT#');
@@ -129,15 +145,19 @@ class MustachePHPCodeGen
 
 		if($is_root)
 		{
+			// generate a MustacheRuntimeStack instance from the given view's variable name.
 			$s .= self::PHP_OPEN . '$stack_' . $this->codebit_var . ' = new MustacheRuntimeStack($' . $this->view_var_name . '); ';
 		}
 		else
 		{
+			// look up the variable name given in the {section} tag.
 			$s .= self::PHP_OPEN . '$secv = MustacheRuntime::lookUpVar($mustache_stack, ' . self::varToPhp($section) . '); ';
 		}
 
+		// use a closure to avoid pollution of the global or current runtime scope.
 		$s .= '$section_' . $section_id . ' = function(&$mustache_stack) {' . self::PHP_CLOSE;
 
+		// add section child contents:
 		foreach($section as $child)
 		{
 			$s .= $this->generateInternal($child);
@@ -147,20 +167,25 @@ class MustachePHPCodeGen
 
 		if($is_root)
 		{
+			// execute wrapping root closure, then clean up:
 			$s .= self::PHP_OPEN . '$section_' . $section_id . '($stack_' . $this->codebit_var . '); ';
 			$s .= 'unset($stack_' . $this->codebit_var . ');' . self::PHP_CLOSE;
 		}
 		else
 		{
+			// generate if clause according to the section type:
 			$s .= self::PHP_OPEN;
 			if($section instanceof MustacheParserInvertedSection)
 			{
+				// inverted section are never iterable:
 				$s .= 'if(MustacheRuntime::sectionFalsey($secv)) { ';
 				$s .= '$mustache_stack->push($secv); $section_' . $section_id . '($mustache_stack); $mustache_stack->pop(); ';
 				$s .= '}';
 			}
 			else
 			{
+				// use foreach to iterate:
+				// @see MustacheRuntime::sectionIterable
 				$s .= 'if(MustacheRuntime::sectionIterable($secv)) foreach($secv as $v) { ';
 				$s .= '$mustache_stack->push($v); $section_' . $section_id . '($mustache_stack); $mustache_stack->pop(); ';
 				$s .= '}';
@@ -171,6 +196,11 @@ class MustachePHPCodeGen
 		return $s;
 	}
 
+	/**
+	 * Returns PHP code that inserts the contents of an entity with the given variable name at runtime.
+	 * @param MustacheParserVariable $var
+	 * @return string
+	 **/
 	protected function generateVar(MustacheParserVariable $var)
 	{
 		$s = 'MustacheRuntime::lookUpVar($mustache_stack, ' . self::varToPhp($var) . ')';
@@ -183,6 +213,11 @@ class MustachePHPCodeGen
 		return self::PHP_OPEN . 'echo ' . $s . ';' . self::PHP_CLOSE_AFTER_OUTPUT;
 	}
 
+	/**
+	 * Returns PHP code that runs a chunk of mustache template code against the runtime-current stack.
+	 * @param MustacheParserRuntimeTemplate $tpl
+	 * @return string
+	 **/
 	protected function generateRuntimeTemplate(MustacheParserRuntimeTemplate $tpl)
 	{
 		// is this really adequate?
