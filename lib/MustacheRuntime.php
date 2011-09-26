@@ -99,6 +99,8 @@ class MustacheRuntime
 	/**
 	 * Returns true if $section_var (which should be something returned by lookUpVar)
 	 * is iterable, may modify $section_var's contents to be iterable when it makes sense.
+	 * Please note that while empty lists might still return true from this method,
+	 * they still won't yield any output since they are empty.
 	 * @see lookUpVar
 	 * @return boolean
 	 **/
