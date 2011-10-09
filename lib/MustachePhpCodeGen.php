@@ -197,7 +197,7 @@ class MustachePHPCodeGen
 	}
 
 	/**
-	 * Returns PHP code that inserts the contents of an entity with the given variable name at runtime.
+	 * Returns PHP code that outputs the contents of an entity with the given variable name at runtime.
 	 * @param MustacheParserVariable $var
 	 * @return string
 	 **/

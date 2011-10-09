@@ -551,6 +551,8 @@ class MustacheParser
 
 /**
  * An object extracted by the parser. Used by code gens, interpreters and such.
+ * Does not contain a lot of logic, mostly a data store with some utils.
+ * The other parser object classes derive from this class.
  * @package php-mustache
  * @subpackage shared
  **/
@@ -672,16 +674,33 @@ abstract class MustacheParserObjectWithName extends MustacheParserObject
 }
 
 
+/**
+ * A section parser object.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheParserSection extends MustacheParserObjectWithName implements Iterator
 {
+	/**
+	 * @var array
+	 **/
 	protected $children = array();
 
+	/**
+	 * Constructor.
+	 * @param string $name
+	 * @param MustacheParserSection|null $parent
+	 **/
 	public function __construct($name, MustacheParserSection $parent = NULL)
 	{
 		parent::__construct($name, $parent);
 		$this->name = $name;
 	}
 
+	/**
+	 * Adds a child parser object to this section. Changes $child's parent to $this.
+	 * @param MustacheParserObject $child
+	 **/
 	public function addChild(MustacheParserObject $child)
 	{
 		$child->_setParent($this);
@@ -699,38 +718,75 @@ class MustacheParserSection extends MustacheParserObjectWithName implements Iter
 }
 
 
+/**
+ * An inverted section parser object. Exactly the same as MustacheParserSection,
+ * however "$var isinstanceof MustacheParserInvertedSection" will be used to tell them apart.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheParserInvertedSection extends MustacheParserSection
 {
 
 }
 
 
+/**
+ * Parser object that represents a literal string part of a template.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheParserLiteral extends MustacheParserObject
 {
+	/**
+	 * @var string
+	 **/
 	protected $contents;
 
+	/**
+	 * Constructor...
+	 * @param string $contents
+	 **/
 	public function __construct($contents)
 	{
 		$this->contents = $contents;
 	}
 
+	/**
+	 * Damn, this is a boring class.
+	 * @return string
+	 **/
 	public function getContents()
 	{
 		return $this->contents;
 	}
 }
 
-
+/**
+ * This parser object represents a variable / {{interpolation}}.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheParserVariable extends MustacheParserObjectWithName
 {
+	/**
+	 * @var boolean
+	 **/
 	protected $escape;
 
+	/**
+	 * @param string name
+	 * @param boolean escape
+	 **/
 	public function __construct($name, $escape)
 	{
 		parent::__construct($name);
 		$this->escape = $escape;
 	}
 
+	/**
+	 * (HTML)escape this variable's contents?
+	 * @return boolean
+	 **/
 	public function escape()
 	{
 		return $this->escape;
@@ -738,27 +794,57 @@ class MustacheParserVariable extends MustacheParserObjectWithName
 }
 
 
+/**
+ * Represents a piece of mustache template that *must* be evaluated at runtime.
+ * Currently only used for recursive partials.
+ * @package php-mustache
+ * @subpackage shared
+ **/
 class MustacheParserRuntimeTemplate extends MustacheParserObject
 {
+	/**
+	 * Partial's name
+	 * @var string
+	 **/
 	protected $name;
+	/**
+	 * List of all partials, required since they could be used by the "main" partial or other partials.
+	 * @var array
+	 **/
 	protected $partials;
 
+	/**
+	 * @var string $name
+	 * @var array $partials
+	 **/
 	public function __construct($name, array $partials)
 	{
 		$this->name = $name;
 		$this->partials = $partials;
 	}
 
+	/**
+	 * Returns the template contents of this partial.
+	 * @return string
+	 **/
 	public function lookupSelf()
 	{
 		return $this->partials[$this->name];
 	}
 
+	/**
+	 * Returns a copy of the list of all partials.
+	 * @return array
+	 **/
 	public function getPartials()
 	{
 		return $this->partials;
 	}
 
+	/**
+	 * Returns this partial's name.
+	 * @return string
+	 **/
 	public function getName()
 	{
 		return $this->name;
