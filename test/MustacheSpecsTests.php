@@ -136,7 +136,8 @@ abstract class MustacheSpecsTests
 
 				if(is_string($fail_output_dir) && is_dir($fail_output_dir))
 				{
-					file_put_contents($fail_output_dir . '/' . preg_replace('~[^a-zA-Z0-9 _.-]+~', '', $test_id) . '.txt', $info);
+					file_put_contents($fail_output_dir . '/' .
+						preg_replace('~[^a-zA-Z0-9 _.-]+~', '', $test_id) . '.txt', $info);
 				}
 			}
 		}
@@ -299,7 +300,8 @@ function mustache_tests_main($argc, $argv)
 	}
 	else
 	{
-		echo 'Please run this script from the command line and use -interpreted or -compiled as command line argument.' . "\n";
+		echo 'Please run this script from the command line and use one of ' .
+			'-interpreted, -compiled or -javascript as command line argument.' . "\n";
 	}
 }
 
