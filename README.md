@@ -19,6 +19,8 @@ php-mustache is sufficiently mature and robust, however these are some things th
 - the JavaScript code generator does not support recursive partials yet
 - there are some failing tests [ all related to whitespace handling only! ]
 
+It is strongly adviced to use UTF-8 encoded templates and data only.
+
 ## Examples
 
 ### mustache interpreted at runtime

@@ -24,6 +24,7 @@ class MustacheJavaScriptCodeGen
 	protected $whitespace_mode;
 
 	/**
+	 * Note: for successful JS code generation, the template must be provided in UTF-8 encoding!
 	 * @param MustacheParser $parser Parser with the syntax tree.
 	 **/
 	public function __construct(MustacheParser $parser)
@@ -32,6 +33,13 @@ class MustacheJavaScriptCodeGen
 		$this->whitespace_mode = $parser->getWhitespaceMode();
 	}
 
+	/**
+	 * Returns the runtime library JS code that is required when executing the
+	 * function(){...} code returned by generate. Feel free to minimize the
+	 * returned JS blob before deploying.
+	 * @see generate
+	 * @return string
+	 **/
 	public static function getRuntimeCode()
 	{
 		return <<<'EOJS'
@@ -58,6 +66,11 @@ class MustacheJavaScriptCodeGen
 		str = new String(!str ? '' : str);
 		// fastest method according to http://jsperf.com/encode-html-entities
 		return str.replace(/[&<>"]/g, function(ch) { return _charsToEscape[ch]; });
+	};
+
+	// is_array helper function:
+	var is_array = Array.isArray || function(a) {
+		return Object.prototype.toString.call(a) === '[object Array]';
 	};
 
 	// lookup business internal static functions:
@@ -98,10 +111,7 @@ class MustacheJavaScriptCodeGen
 		return !secv;
 	}
 
-	var is_array = Array.isArray || function(a) {
-		return Object.prototype.toString.call(a) === '[object Array]';
-	};
-
+	// main runtime class:
 	MustacheRuntime = function(data)
 	{
 		this.stack = [ data ];
@@ -209,7 +219,11 @@ EOJS;
 	}
 
 	/**
-	 *
+	 * Returns JavaScript code that yields equal results as the provided template.
+	 * Its structure looks like "function(data){...}" where data is the data variable
+	 * that is to be used while executing the template. The returned code can only
+	 * run successfully if the library provided by getRuntimeCode() is present.
+	 * @see getRuntimeCode
 	 * @return string Returns false if there's no parser tree or no data variable.
 	 **/
 	public function generate()
@@ -226,18 +240,14 @@ EOJS;
 		return $js;
 	}
 
+	/**
+	 * Escapes whitespace and friends, then returns the given string with quotes around it so it can be used in JS.
+	 * @param string $str
+	 * @return string
+	 **/
 	protected static function quoteLiteral($str)
 	{
-		return '"' . strtr($str,
-			array("\r" => '\r',
-			"\n" => '\n',
-			"\0" => '\0',
-			"\t" => '\t',
-			"\b" => '\b',
-			"\f" => '\f',
-			"\v" => '\x0B',
-			'\\' => '\\\\',
-			'"' => '\"')) . '"';
+		return json_encode($str);
 	}
 
 	/**
@@ -273,7 +283,7 @@ EOJS;
 	}
 
 	/**
-	 * Returns an intermediate representation of $var - important for dot syntax.
+	 * Returns an intermediate JS code representation of $var - important for dot syntax.
 	 * @param MustacheParserObjectWithName $var
 	 * @return string
 	 **/
@@ -286,7 +296,7 @@ EOJS;
 	}
 
 	/**
-	 * 
+	 * Generates JS code that runs a section.
 	 * @param $MustacheParserSection $section
 	 * @return string
 	 **/
@@ -317,7 +327,7 @@ EOJS;
 	}
 
 	/**
-	 * 
+	 * Generates JS code that looks up and inserts variable contents.
 	 * @param MustacheParserVariable $var
 	 * @return string
 	 **/
