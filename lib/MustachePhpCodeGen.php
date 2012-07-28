@@ -169,7 +169,7 @@ class MustachePHPCodeGen
 		{
 			// execute wrapping root closure, then clean up:
 			$s .= self::PHP_OPEN . '$section_' . $section_id . '($stack_' . $this->codebit_var . '); ';
-			$s .= 'unset($stack_' . $this->codebit_var . ');' . self::PHP_CLOSE;
+			$s .= 'unset($stack_' . $this->codebit_var . ', $section_' . $section_id . ');' . self::PHP_CLOSE;
 		}
 		else
 		{
@@ -177,7 +177,7 @@ class MustachePHPCodeGen
 			$s .= self::PHP_OPEN;
 			if($section instanceof MustacheParserInvertedSection)
 			{
-				// inverted section are never iterable:
+				// inverted sections are never iterable:
 				$s .= 'if(MustacheRuntime::sectionFalsey($secv)) { ';
 				$s .= '$mustache_stack->push($secv); $section_' . $section_id . '($mustache_stack); $mustache_stack->pop(); ';
 				$s .= '}';
