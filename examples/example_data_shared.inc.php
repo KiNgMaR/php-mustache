@@ -1,4 +1,8 @@
 <?php
+/**
+* @package php-mustache
+* @subpackage examples
+**/
 
 // example data from: http://mustache.github.com/#demo
 

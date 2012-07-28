@@ -1,7 +1,17 @@
 <?php
+/**
+* @package php-mustache
+* @subpackage examples
+**/
 
+/**
+ * include codegen.
+ **/
 require_once dirname(__FILE__) . '/../lib/MustachePhpCodeGen.php';
 
+/**
+ * include shared example data.
+ **/
 include dirname(__FILE__) . '/example_data_shared.inc.php';
 
 $codegen = new MustachePHPCodeGen($parser);
