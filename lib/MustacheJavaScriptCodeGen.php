@@ -253,8 +253,14 @@ EOJS;
 		}
 		elseif($obj instanceof MustacheParserLiteral)
 		{
-			// easy-peasy:
-			return 'r.l(' . self::quoteLiteral($obj->getContents()) . ');';
+			$str = $obj->getContents();
+
+			if($this->whitespace_mode == MUSTACHE_WHITESPACE_STRIP)
+			{
+				$str = preg_replace('~\s+~', ' ', $str);
+			}
+
+			return 'r.l(' . self::quoteLiteral($str) . ');';
 		}
 		elseif($obj instanceof MustacheParserVariable)
 		{
