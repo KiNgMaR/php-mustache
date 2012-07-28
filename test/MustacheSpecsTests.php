@@ -207,6 +207,38 @@ class MustacheInterpreterSpecsTests extends MustacheSpecsTests
 
 
 /**
+ * Specs test suite class for MustacheJavaScriptCodeGen.
+ * @package php-mustache
+ * @subpackage tests
+ **/
+class MustacheJavaScriptSpecsTests extends MustacheSpecsTests
+{
+	/**
+	 * @see MustacheSpecsTests::runFromParser
+	 **/
+	protected function runFromParser(MustacheParser $parser, $data, &$extra_info = NULL)
+	{
+		$codegen = new MustacheJavaScriptCodeGen($parser);
+		$js = $codegen->generate();
+
+		$extra_info = "GENERATED CODE:\n\n" . $js;
+
+		$temp_fn = sys_get_temp_dir() . '/MustacheTest.js';
+
+		file_put_contents($temp_fn,
+			MustacheJavaScriptCodeGen::getRuntimeCode() . "\n" .
+			'var data = ' . json_encode($data) . ";\n" .
+			'var tpl = ' . $js . ";\n" .
+			'require("util").print(tpl(data));');
+
+		$result = shell_exec('node ' . escapeshellarg($temp_fn));
+
+		return $result;
+	}
+}
+
+
+/**
  * main() sort of thing.
  **/
 function mustache_tests_main($argc, $argv)
@@ -237,10 +269,19 @@ function mustache_tests_main($argc, $argv)
 
 			$tests = new CompilingMustacheSpecsTests();
 		}
+		elseif($argv[1] == '-javascript')
+		{
+			/**
+			 * Load javascript code gen classes.
+			 **/
+			require_once dirname(__FILE__) . '/../lib/MustacheJavaScriptCodeGen.php';
+
+			$tests = new MustacheJavaScriptSpecsTests();
+		}
 
 		if(!$tests)
 		{
-			echo 'Please use -interpreted or -compiled as command line argument.' . "\n";
+			echo 'Please use -interpreted, -compiled or -javascript as command line argument.' . "\n";
 		}
 		else
 		{
