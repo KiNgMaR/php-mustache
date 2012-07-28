@@ -24,4 +24,5 @@ echo $code . "\n";
 // make sure to include the library code returned by
 // MustacheJavaScriptCodeGen::getRuntimeCode()
 // then just invoke the function(data){...} as returned by generate.
-// Pass along the data object/array variable.
+// Pass along the data object/array variable and receive the
+// evaluated template+data results in return.

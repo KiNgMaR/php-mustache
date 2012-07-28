@@ -12,7 +12,7 @@ php-mustache consists of the following components:
 It aims to be compliant with the official mustache specs, as found on
 https://github.com/mustache/spec
 
-php-mustache is sufficiently mature and robust, however these are some things that are currently not implemented:
+php-mustache is sufficiently mature and robust, however these are some things that are not currently implemented:
 
 - lambdas [ no plans to add them currently ]
 - calling methods on data objects (only properties are being read) [ should be an easy patch ]
@@ -64,7 +64,8 @@ echo $code . "\n";
 // make sure to include the library code returned by
 // MustacheJavaScriptCodeGen::getRuntimeCode()
 // then just invoke the function(data){...} as returned by generate.
-// Pass along the data object/array variable.
+// Pass along the data object/array variable and receive the
+// evaluated template+data results in return.
 ```
 
 ## MustacheParser public API
@@ -95,7 +96,7 @@ public function __construct($template, $whitespace_mode = MUSTACHE_WHITESPACE_LA
 public function getWhitespaceMode();
 
 /**
- * Adds a partial with name $key and template contentens $tpl.
+ * Adds a partial with name $key and template contents $tpl.
  * @param string $key
  * @param string $tpl
  **/

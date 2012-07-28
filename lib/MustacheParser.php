@@ -370,7 +370,7 @@ class MustacheParser
 	}
 
 	/**
-	 * Adds a partial with name $key and template contentens $tpl.
+	 * Adds a partial with name $key and template contents $tpl.
 	 * @param string $key
 	 * @param string $tpl
 	 **/
