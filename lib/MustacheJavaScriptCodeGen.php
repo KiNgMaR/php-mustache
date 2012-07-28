@@ -22,15 +22,21 @@ class MustacheJavaScriptCodeGen
 	 * @var int
 	 **/
 	protected $whitespace_mode;
+	/**
+	 * @var bool
+	 **/
+	protected $compact_literals;
 
 	/**
 	 * Note: for successful JS code generation, the template must be provided in UTF-8 encoding!
 	 * @param MustacheParser $parser Parser with the syntax tree.
+	 * @param bool $compact_literals
 	 **/
-	public function __construct(MustacheParser $parser)
+	public function __construct(MustacheParser $parser, $compact_literals = false)
 	{
 		$this->tree = $parser->getTree();
 		$this->whitespace_mode = $parser->getWhitespaceMode();
+		$this->compact_literals = $compact_literals;
 	}
 
 	/**
@@ -245,9 +251,25 @@ EOJS;
 	 * @param string $str
 	 * @return string
 	 **/
-	protected static function quoteLiteral($str)
+	protected function quoteLiteral($str)
 	{
-		return json_encode($str);
+		if(!$this->compact_literals)
+		{
+			return json_encode($str);
+		}
+		else
+		{
+			// Add less backslashes by using single quotes
+			// and escaping less characters...
+			// ...thereby achieving a smaller JS code blob.
+			return '\'' . strtr(str_replace("\r\n", "\n", $str), array(
+					'\\' => '\\\\',
+					"\0" => '\0',
+					"\r" => '\r',
+					"\n" => '\n',
+					'\'' => '\\\'',
+				)) . '\'';
+		}
 	}
 
 	/**
@@ -270,7 +292,7 @@ EOJS;
 				$str = preg_replace('~\s+~', ' ', $str);
 			}
 
-			return 'r.l(' . self::quoteLiteral($str) . ');';
+			return 'r.l(' . $this->quoteLiteral($str) . ');';
 		}
 		elseif($obj instanceof MustacheParserVariable)
 		{
@@ -287,12 +309,12 @@ EOJS;
 	 * @param MustacheParserObjectWithName $var
 	 * @return string
 	 **/
-	static protected function varToJs(MustacheParserObjectWithName $var)
+	protected function varToJs(MustacheParserObjectWithName $var)
 	{
 		if($var->isDotNotation())
 			return json_encode($var->getNames());
 		else
-			return self::quoteLiteral($var->getName());
+			return $this->quoteLiteral($var->getName());
 	}
 
 	/**
@@ -309,7 +331,7 @@ EOJS;
 
 		if(!$is_root)
 		{
-			$s .= 'r.s(' . ($inverted_section ? '1' : '0') . ',' . self::varToJs($section) .
+			$s .= 'r.s(' . ($inverted_section ? '1' : '0') . ',' . $this->varToJs($section) .
 				',function(){';
 		}
 
@@ -333,7 +355,7 @@ EOJS;
 	 **/
 	protected function generateVar(MustacheParserVariable $var)
 	{
-		return 'r.v(' . self::varToJs($var) . ($var->escape() ? '' : ',1') . ');';
+		return 'r.v(' . $this->varToJs($var) . ($var->escape() ? '' : ',1') . ');';
 	}
 
 	/**
