@@ -18,7 +18,7 @@ php-mustache is sufficiently mature and robust, however these are some things th
 - calling methods on data objects (only properties are being read) [ should be an easy patch ]
 - there are some failing tests [ all related to whitespace handling only! ]
 
-It is strongly adviced to use UTF-8 encoded templates and data only.
+It is strongly recommended to use UTF-8 encoded templates and data only.
 
 ## Examples
 
