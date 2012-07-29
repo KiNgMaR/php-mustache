@@ -16,7 +16,6 @@ php-mustache is sufficiently mature and robust, however these are some things th
 
 - lambdas [ no plans to add them currently ]
 - calling methods on data objects (only properties are being read) [ should be an easy patch ]
-- the JavaScript code generator does not support recursive partials yet
 - there are some failing tests [ all related to whitespace handling only! ]
 
 It is strongly adviced to use UTF-8 encoded templates and data only.

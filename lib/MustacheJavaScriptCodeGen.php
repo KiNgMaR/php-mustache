@@ -28,6 +28,12 @@ class MustacheJavaScriptCodeGen
 	protected $compact_literals;
 
 	/**
+	 * Used to keep track of recursive partials during compilation.
+	 * @var array
+	 **/
+	private $registered_partials = array();
+
+	/**
 	 * Note: for successful JS code generation, the template must be provided in UTF-8 encoding!
 	 * @param MustacheParser $parser Parser with the syntax tree.
 	 * @param bool $compact_literals
@@ -120,6 +126,7 @@ class MustacheJavaScriptCodeGen
 	// main runtime class:
 	MustacheRuntime = function(data)
 	{
+		this.partials = { }; // used for recursive partials only
 		this.stack = [ data ];
 		// using an array to avoid memory reallocations as the buffer grows:
 		this.buf = [];
@@ -175,6 +182,18 @@ class MustacheJavaScriptCodeGen
 				core();
 				this.stack.pop();
 			}
+		},
+
+		// register partial (used for recursive partials only):
+		pr: function(name, func)
+		{
+			this.partials[name] = func;
+		},
+
+		// run partial:
+		p: function(name)
+		{
+			this.partials[name].call();
 		},
 
 		_look_up_var: function(var_name)
@@ -362,7 +381,28 @@ EOJS;
 	 **/
 	protected function generateRuntimeTemplate(MustacheParserRuntimeTemplate $tpl)
 	{
-		// :TODO:
+		$s = '';
+
+		if(!isset($this->registered_partials[$tpl->getName()]))
+		{
+			// this only works correctly because the partial has been expanded
+			// once by the parser - this an inner call of the recursion!
+			$this->registered_partials[$tpl->getName()] = true;
+
+			$parser = new MustacheParser($tpl->lookupSelf(), $this->whitespace_mode);
+			$parser->addPartials($tpl->getPartials());
+			$parser->parse();
+
+			$child = new self($parser, $this->compact_literals);
+			$child->registered_partials = &$this->registered_partials;
+			// register partial in JS so it's known by name:
+			$s .= 'r.pr(' . $this->quoteLiteral($tpl->getName()) . ',function(){' .
+				$child->generateInternal($child->tree) . '});';
+		}
+
+		$s .= 'r.p(' . $this->quoteLiteral($tpl->getName()) . ');';
+
+		return $s;
 	}
 }
 
