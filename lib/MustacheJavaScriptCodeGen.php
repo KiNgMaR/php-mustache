@@ -126,9 +126,6 @@ class MustacheJavaScriptCodeGen
 	};
 
 	MustacheRuntime.prototype = {
-		// escape
-		e: xmlEscape,
-
 		// literal
 		l: function(s)
 		{
