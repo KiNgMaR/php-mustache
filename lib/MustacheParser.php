@@ -327,6 +327,10 @@ class MustacheParser
 	 **/
 	protected $partials = array();
 	/**
+	 * @var array
+	 **/
+	protected $partial_callbacks = array();
+	/**
 	 * If this is a partial, its name is stored here.
 	 * @var string
 	 **/
@@ -399,21 +403,36 @@ class MustacheParser
 	}
 
 	/**
-	 * Empties the list of added partials.
+	 * Adds a callback that will be queried for unknown partials that occur during parsing.
+	 * The signature of the callback is: <code>string pcb($partial_name)</code>
+	 * @param callable $callback
+	 **/
+	public function addPartialsCallback($callback)
+	{
+		if(is_callable($callback))
+		{
+			$this->partial_callbacks[] = $callback;
+		}
+	}
+
+	/**
+	 * Empties the list of added partials and callbacks.
 	 **/
 	public function clearPartials()
 	{
 		$this->partials = array();
+		$this->partial_callbacks = array();
 	}
 
 	/**
 	 * References all partials from $partials, usually from another MustacheParser instance.
 	 * @param array& $partials
 	 **/
-	protected function refPartials($this_partial_name, array& $partials)
+	protected function refPartials($this_partial_name, array& $partials, array& $partial_callbacks)
 	{
 		$this->this_partial_name = $this_partial_name;
 		$this->partials = &$partials;
+		$this->partial_callbacks = &$partial_callbacks;
 	}
 
 	/**
@@ -477,23 +496,43 @@ class MustacheParser
 			}
 			elseif($token['t'] == MustacheTokenizer::TKN_PARTIAL)
 			{
-				// resolve partial
-				if(isset($this->partials[$token['d']]))
+				// resolve partial, look for recursive partials first:
+				if(is_string($this->this_partial_name) && !empty($this->this_partial_name) && !strcmp($this->this_partial_name, $token['d']))
 				{
-					if(is_string($this->this_partial_name) && !strcmp($this->this_partial_name, $token['d']))
+					// recursive partial
+					$tag = new MustacheParserRuntimeTemplate($token['d'], $this->partials);
+
+					if(isset($token['ind'])) $tag->setIndent($token['ind']);
+
+					$parent->addChild($tag);
+				}
+				else
+				{
+					// find template string from existing list or query callbacks
+					$partial_tpl = NULL;
+
+					if(isset($this->partials[$token['d']]))
 					{
-						// recursive partial
-						$tag = new MustacheParserRuntimeTemplate($token['d'], $this->partials);
-
-						if(isset($token['ind'])) $tag->setIndent($token['ind']);
-
-						$parent->addChild($tag);
+						$partial_tpl = $this->partials[$token['d']];
 					}
 					else
 					{
-						// resolve partials at "compile-time":
+						foreach($this->partial_callbacks as $callback)
+						{
+							$partial_tpl = $callback($token['d']);
+
+							if(!empty($partial_tpl))
+							{
+								break;
+							}
+						}
+					}
+
+					if(!is_null($partial_tpl))
+					{
+						// replace partials at "compile time":
 						$partial_parser = new self($this->partials[$token['d']]);
-						$partial_parser->refPartials($token['d'], $this->partials);
+						$partial_parser->refPartials($token['d'], $this->partials, $this->partial_callbacks);
 						$partial_parser->parse();
 
 						// :TODO: consider indentation

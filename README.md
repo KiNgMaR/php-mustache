@@ -109,7 +109,14 @@ public function addPartial($key, $tpl);
 public function addPartials($partials);
 
 /**
- * Empties the list of added partials.
+ * Adds a callback that will be queried for unknown partials that occur during parsing.
+ * The signature of the callback is: <code>string pcb($partial_name)</code>
+ * @param callable $callback
+ **/
+public function addPartialsCallback($callback);
+
+/**
+ * Empties the list of added partials and callbacks.
  **/
 public function clearPartials();
 
