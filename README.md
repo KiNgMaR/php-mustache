@@ -86,6 +86,7 @@ define('MUSTACHE_WHITESPACE_STRIP', 4);
 
 /**
  * @param string $template
+ * @param int $whitespace_mode
  **/
 public function __construct($template, $whitespace_mode = MUSTACHE_WHITESPACE_LAZY);
 
@@ -142,6 +143,45 @@ public function __construct(MustacheParser $parser);
  * @return void
  **/
 public function setHtmlspecialcharsFlags($flags);
+
+/**
+ * Does the magic, i.e. turns the given parser tree into PHP code that
+ * processes the data from $view_var_name according to the template.
+ * @param string $view_var_name
+ * @return string Returns false if there's no parser tree or no data variable.
+ **/
+public function generate($view_var_name);
+```
+
+## MustacheJavaScriptCodeGen public API
+
+```php
+<?php
+/**
+ * Note: for successful JS code generation, the template must be provided in UTF-8 encoding!
+ * @param MustacheParser $parser Parser with the syntax tree.
+ * @param bool $compact_literals
+ **/
+public function __construct(MustacheParser $parser, $compact_literals = false);
+
+/**
+ * Returns the runtime library JS code that is required when executing the
+ * function(){...} code returned by generate. Feel free to minimize the
+ * returned JS blob before deploying.
+ * @see generate
+ * @return string
+ **/
+public static function getRuntimeCode();
+
+/**
+ * Returns JavaScript code that yields equal results as the provided template.
+ * Its structure looks like "function(data){...}" where data is the data variable
+ * that is to be used while executing the template. The returned code can only
+ * run successfully if the library provided by getRuntimeCode() is present.
+ * @see getRuntimeCode
+ * @return string Returns false if there's no parser tree or no data variable.
+ **/
+public function generate();
 ```
 
 You can have a look at the [test suite invocation](https://github.com/KiNgMaR/php-mustache/blob/master/test/MustacheSpecsTests.php) for another example.

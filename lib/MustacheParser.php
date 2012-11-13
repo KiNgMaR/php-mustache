@@ -345,6 +345,7 @@ class MustacheParser
 
 	/**
 	 * @param string $template
+	 * @param int $whitespace_mode
 	 **/
 	public function __construct($template, $whitespace_mode = MUSTACHE_WHITESPACE_LAZY)
 	{
