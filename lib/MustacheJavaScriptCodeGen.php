@@ -34,7 +34,10 @@ class MustacheJavaScriptCodeGen
 	private $registered_partials = array();
 
 	/**
-	 * Note: for successful JS code generation, the template must be provided in UTF-8 encoding!
+	 * Note 1: for successful JS code generation, the template must be provided in UTF-8 encoding!
+	 * Note 2: while $compact_literals reduces the output code size, it must not be used when deploying
+	 * the generated code inside an HTML document as e.g. </script> is no longer being escaped. Do
+	 * not use if you don't fully understand the implications.
 	 * @param MustacheParser $parser Parser with the syntax tree.
 	 * @param bool $compact_literals
 	 **/
