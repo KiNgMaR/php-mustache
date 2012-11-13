@@ -249,7 +249,7 @@ EOJS;
 	 * that is to be used while executing the template. The returned code can only
 	 * run successfully if the library provided by getRuntimeCode() is present.
 	 * @see getRuntimeCode
-	 * @return string Returns false if there's no parser tree or no data variable.
+	 * @return string
 	 **/
 	public function generate()
 	{

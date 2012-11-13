@@ -162,6 +162,8 @@ public function generate($view_var_name);
  * Note 2: while $compact_literals reduces the output code size, it must not be used when deploying
  * the generated code inside an HTML document as e.g. </script> is no longer being escaped. Do
  * not use if you don't fully understand the implications.
+ * @param MustacheParser $parser Parser with the syntax tree.
+ * @param bool $compact_literals
  **/
 public function __construct(MustacheParser $parser, $compact_literals = false);
 
@@ -175,12 +177,12 @@ public function __construct(MustacheParser $parser, $compact_literals = false);
 public static function getRuntimeCode();
 
 /**
- * Note 1: for successful JS code generation, the template must be provided in UTF-8 encoding!
- * Note 2: while $compact_literals reduces the output code size, it must not be used when deploying
- * the generated code inside an HTML document as e.g. </script> is no longer being escaped. Do
- * not use if you don't fully understand the implications.
- * @param MustacheParser $parser Parser with the syntax tree.
- * @param bool $compact_literals
+ * Returns JavaScript code that yields equal results as the provided template.
+ * Its structure looks like "function(data){...}" where data is the data variable
+ * that is to be used while executing the template. The returned code can only
+ * run successfully if the library provided by getRuntimeCode() is present.
+ * @see getRuntimeCode
+ * @return string
  **/
 public function generate();
 ```
