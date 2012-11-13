@@ -36,6 +36,10 @@ class MustachePHPCodeGen
 	 **/
 	protected $view_var_name;
 	/**
+	 * @var int
+	 **/
+	protected $htmlspecialchars_flags = NULL;
+	/**
 	 * Random string for unique variable names.
 	 * @var string
 	 **/
@@ -58,6 +62,17 @@ class MustachePHPCodeGen
 		$this->tree = $parser->getTree();
 		$this->whitespace_mode = $parser->getWhitespaceMode();
 		$this->codebit_var = sprintf('%08X', crc32(getmypid() . microtime()));
+	}
+
+	/**
+	 * Adjusts the flags for htmlspecialchars() calls in the generated code.
+	 * Only call this if you need to modify PHP's default flags!
+	 * @param int flags
+	 * @return void
+	 **/
+	public function setHtmlspecialcharsFlags($flags)
+	{
+		$this->htmlspecialchars_flags = (int)$flags;
 	}
 
 	/**
@@ -207,7 +222,17 @@ class MustachePHPCodeGen
 
 		if($var->escape())
 		{
-			$s = 'htmlspecialchars(' . $s . ')';
+			if(is_null($this->htmlspecialchars_flags))
+			{
+				$s = 'htmlspecialchars(' . $s . ')';
+			}
+			else
+			{
+				// use the "real" int representation of the flags, cuts down on code size
+				// and avoids multiple other problems, BUT may require genereated code to
+				// be regenerated after PHP updates.
+				$s = 'htmlspecialchars(' . $s . ', ' . $this->htmlspecialchars_flags . ')';
+			}
 		}
 
 		return self::PHP_OPEN . 'echo ' . $s . ';' . self::PHP_CLOSE_AFTER_OUTPUT;

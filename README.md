@@ -126,4 +126,22 @@ public function clearPartials();
 public function parse();
 ```
 
+## MustachePhpCodeGen public API
+
+```php
+<?php
+/**
+ * @param MustacheParser $parser Parser with the syntax tree.
+ **/
+public function __construct(MustacheParser $parser);
+
+/**
+ * Adjusts the flags for htmlspecialchars() calls in the generated code.
+ * Only call this if you need to modify PHP's default flags!
+ * @param int flags
+ * @return void
+ **/
+public function setHtmlspecialcharsFlags($flags);
+```
+
 You can have a look at the [test suite invocation](https://github.com/KiNgMaR/php-mustache/blob/master/test/MustacheSpecsTests.php) for another example.
