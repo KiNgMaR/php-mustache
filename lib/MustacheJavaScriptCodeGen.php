@@ -78,7 +78,7 @@ class MustacheJavaScriptCodeGen
 	// XML escaping helper:
 	function xmlEscape(str)
 	{
-		str = new String(!str ? '' : str);
+		str = new String(!str && str !== 0 ? '' : str);
 		// fastest method according to http://jsperf.com/encode-html-entities
 		return str.replace(/[&<>"]/g, function(ch) { return _charsToEscape[ch]; });
 	};
