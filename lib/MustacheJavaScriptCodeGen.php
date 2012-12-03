@@ -266,6 +266,25 @@ EOJS;
 	}
 
 	/**
+	 * Same as generate(), but returns a function that optionally takes a second argument
+	 * which is a string describing a root section that the code descends into before executing
+	 * the template. Useful when executing partials separately.
+	 * @see generate
+	 * @return string
+	 **/
+	public function generateEx()
+	{
+		$js = 'function(_c,_s){var r=new MustacheRuntime(_c),_f=function(){';
+
+		$js .= $this->generateInternal($this->tree);
+
+		$js .= '};if(_s){r.s(0,_s,_f)}else{_f()}';
+		$js .= 'return r.get()}';
+
+		return $js;
+	}
+
+	/**
 	 * Escapes whitespace and friends, then returns the given string with quotes around it so it can be used in JS.
 	 * @param string $str
 	 * @return string
@@ -279,7 +298,8 @@ EOJS;
 		else
 		{
 			// Add less backslashes by using single quotes
-			// and escaping less characters...
+			// (HTML usually has double quotes => less to escape)
+			// and escaping less characters (leave UTF-8 as it is)...
 			// ...thereby achieving a smaller JS code blob.
 			return '\'' . strtr(str_replace("\r\n", "\n", $str), array(
 					'\\' => '\\\\',
