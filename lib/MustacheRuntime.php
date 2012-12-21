@@ -108,9 +108,9 @@ class MustacheRuntime
 	{
 		// $section_var contains a result from lookUpVar
 
-		if(empty($section_var))
+		if(self::sectionFalsey($section_var))
 		{
-			// falsey sections don't iterate yo
+			// falsey sections can not be iterated over.
 			return false;
 		}
 		elseif(is_array($section_var) || $section_var instanceof Iterator)
@@ -141,7 +141,19 @@ class MustacheRuntime
 	 **/
 	public static function sectionFalsey(&$section_var)
 	{
-		return empty($section_var);
+		// this should be logically equal to is_section_falsey() in MustacheJavaScriptCodeGen's MustacheRuntime class.
+		// see also this discussion: https://github.com/mustache/spec/issues/28
+
+		if(!isset($section_var))
+			return true;
+
+		if($section_var === false || $section_var === NULL || $section_var === '')
+			return true;
+
+		if((is_array($section_var) || $section_var instanceof ArrayAccess) && count($section_var) === 0)
+			return true;
+
+		return false;
 	}
 
 	/**
