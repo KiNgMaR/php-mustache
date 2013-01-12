@@ -76,6 +76,16 @@ class MustachePHPCodeGen
 	}
 
 	/**
+	 * Can be used to make the resulting PHP code more predictable (i.e. do not contain random var names).
+	 * @param string $suffix
+	 * @return void
+	 **/
+	public function setClosureVarNameSuffix($suffix)
+	{
+		$this->codebit_var = (string)$suffix;
+	}
+
+	/**
 	 * Does the magic, i.e. turns the given parser tree into PHP code that
 	 * processes the data from $view_var_name according to the template.
 	 * @param string $view_var_name
