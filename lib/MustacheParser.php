@@ -532,7 +532,7 @@ class MustacheParser
 					if(!is_null($partial_tpl))
 					{
 						// replace partials at "compile time":
-						$partial_parser = new self($this->partials[$token['d']]);
+						$partial_parser = new self($partial_tpl, $this->whitespace_mode);
 						$partial_parser->refPartials($token['d'], $this->partials, $this->partial_callbacks);
 						$partial_parser->parse();
 
